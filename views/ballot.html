@@ -1,0 +1,138 @@
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <script src="http://code.jquery.com/jquery-latest.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/web3/dist/web3.min.js"></script>
+    <script>
+        var account = null;
+        var Ballot_Contract = null;
+    </script>
+    <title>编程语言投票</title>
+    <style>
+        .center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: xx-large;
+        }
+    </style>
+</head>
+
+<body>
+    <div align="center">
+        <table>
+            <tr>
+                <td align='center' colspan="4">
+                    <h1>年度最受欢迎语言投票</h1>
+                </td>
+            </tr>
+            <tr>
+                <td align='center'>0号</td>
+                <td align='center'>1号</td>
+                <td align='center'>2号</td>
+                <td align='center'>3号</td>
+            </tr>
+            <tr>
+                <td align='center'><img src="img/python.png" width="300" /></button></td>
+                <td align='center'><img src="img/java.jpg" width="300" /></button></td>
+                <td align='center'><img src="img/cpp.jpg" width="300" /></button></td>
+                <td align='center'><img src="img/go.jpg" width="300" /></button></td>
+            </tr>
+            <tr>
+                <td align='center'><button style="font-size: 20px;" onclick="vote(0);">投票</button></td>
+                <td align='center'><button style="font-size: 20px;" onclick="vote(1);">投票</button></td>
+                <td align='center'><button style="font-size: 20px;" onclick="vote(2);">投票</button></td>
+                <td align='center'><button style="font-size: 20px;" onclick="vote(3);">投票</button></td>
+            </tr>
+            <tr>
+                <td colspan="4" style="height: 50;"></td>
+            </tr>
+            <tr>
+                <td align='right'><button style="font-size: 20px;" onclick="reveal();">揭晓结果</button></td>
+                <td><span id="result" style="color: red; font-size: 40px;"></span></td>
+                <td></td>
+                <td></td>
+            </tr>
+            <tr>
+                <td align='right'><button style="font-size: 20px;" onclick="regist();">选民登记</button></td>
+                <td align='left' colspan="2">
+                    <input id="voter" name="voter" size="70"></input>
+                </td>
+                <td align='center'>
+                    <button style="font-size: 20px;" onclick="stage(2);">开始投票</button>
+                    <button style="font-size: 20px;" onclick="stage(3);">结束投票</button>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <script>
+        <!-- web3js网络教程 https://web3js.readthedocs.io/ -->
+        function vote(idx) {
+            Ballot_Contract.methods.vote(idx).send({ from: account }).on('error', function (error, receipt) {
+                console.log(error);
+                console.log(receipt);
+            });
+        };
+        function reveal() {
+            Ballot_Contract.methods.getWinner().call({ from: account }).then(function (result) {
+                console.log(result);
+                $('#result').html(result + "号");
+            });
+        }
+
+        function regist() {
+            var addr = document.querySelector("#voter").value;
+            if (web3.utils.isAddress(addr)) {
+                Ballot_Contract.methods.register(addr).send({ from: account }).on('error', function (error, receipt) {
+                    console.log(error);
+                    console.log(receipt);
+                });
+            } else {
+                alert("请输入合法的地址");
+            }
+
+        }
+        function stage(stg) {
+            Ballot_Contract.methods.changeState(stg).send({ from: account }).on('error', function (error, receipt) {
+                console.log(error);
+                console.log(receipt);
+            });
+        }
+
+        function handleAccountsChanged(accounts) {
+            if (accounts.length === 0) {
+                console.log('Please connect to MetaMask.');
+            } else if (accounts[0] !== account) {
+                account = accounts[0];
+                console.log("当前账户地址：", account);
+            }
+        }
+
+        $(document).ready(function () {
+            ethereum.request({ method: 'eth_requestAccounts' })
+                .then(handleAccountsChanged)
+                .catch((err) => {
+                    if (err.code === 4001) {
+                        console.log('Please connect to MetaMask.');
+                    } else {
+                        console.error("请先安装Metamask插件或使用其他以太坊钱包");
+                    }
+                });
+
+            var contractAddress = "0x082c3A6f18bf97aA42A94F32d2b6CA02fdE1a7f5";
+            var contractABI =[{"inputs":[{"internalType":"uint256","name":"numProposals","type":"uint256"}],"stateMutability":"nonpayable","type":"constructor"},{"inputs":[{"internalType":"enum Ballot.Phase","name":"x","type":"uint8"}],"name":"changeState","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"getWinner","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"voter","type":"address"}],"name":"register","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"state","outputs":[{"internalType":"enum Ballot.Phase","name":"","type":"uint8"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint256","name":"candidate","type":"uint256"}],"name":"vote","outputs":[],"stateMutability":"nonpayable","type":"function"}];
+            var data = "60806040523461017557604051601f6104c338819003918201601f19168301916001600160401b038311848410176101095780849260209460405283398101031261017557516003805460ff19168155811061011d575f80546001600160a01b0319163390811782558152600160205260408120600290555b81811061009b57600160ff196003541617600355604051610349908161017a8239f35b60405190602082016001600160401b03811183821017610109576040525f825260025491680100000000000000008310156101095760018301806002558310156100f55760019260025f5260205f20019051905501610078565b634e487b7160e01b5f52603260045260245ffd5b634e487b7160e01b5f52604160045260245ffd5b60405162461bcd60e51b815260206004820152602a60248201527f63616e64696461746520636f756e742073686f756c64206e6f74206c657373206044820152697468616e20746872656560b01b6064820152608490fd5b5f80fdfe60806040526004361015610011575f80fd5b5f3560e01c80630121b93f146101fa578063268f1153146101a25780634420e4861461011d5780638e7ea5b2146100915763c19d93fb14610050575f80fd5b3461008d575f36600319011261008d5760ff600354166040516004821015610079576020918152f35b634e487b7160e01b5f52602160045260245ffd5b5f80fd5b3461008d575f36600319011261008d5760ff6003541660048110156100795760030361008d576002545f81815b8181106100ed575060011c116100d957602090604051908152f35b634e487b7160e01b5f52600160045260245ffd5b826100f782610291565b505411610107575b6001016100be565b9250905061011482610291565b505490826100ff565b3461008d57602036600319011261008d576004356001600160a01b0381169081900361008d5760ff6003541660048110156100795760010361008d5761016d60018060a01b035f541633146102bd565b805f52600160205260ff600160405f2001541661008d575f90815260016020819052604090912081815501805460ff19169055005b3461008d57602036600319011261008d57600435600481101561008d576101d360018060a01b035f541633146102bd565b6003549060ff8216600481101561007957811061008d5760ff169060ff1916176003555f80f35b3461008d57602036600319011261008d5760043560ff6003541660048110156100795760020361008d57335f52600160205260405f20600181019081549160ff83168015610285575b61008d5760016102619385600285015560ff19161790555491610291565b5080549182018092116102715755005b634e487b7160e01b5f52601160045260245ffd5b50600254841015610243565b6002548110156102a95760025f5260205f2001905f90565b634e487b7160e01b5f52603260045260245ffd5b156102c457565b60405162461bcd60e51b815260206004820152602160248201527f6f6e6c79206368616972506572736f6e2063616e206368616e676520737461746044820152606560f81b6064820152608490fdfea26469706673582212203bd3b4479e7c30ad784246ee3fdf04a63662d4154f375a33141f59567e15e28d64736f6c634300081e0033";
+
+            if (typeof web3 !== 'undefined') {
+                web3 = new Web3(ethereum);
+            } else {
+                console.error("请先安装Metamask插件或使用其他以太坊钱包");
+            }
+            Ballot_Contract = new web3.eth.Contract(contractABI, contractAddress);
+            Ballot_Contract.options.data = data;
+        });
+    </script>
+</body>
