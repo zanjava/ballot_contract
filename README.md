@@ -1,1 +1,1 @@
-sample-truffile-project:投票合约app
+sample-truffle-project:投票合约app
